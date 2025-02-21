@@ -3,36 +3,36 @@ import gql from "graphql-tag";
 const bookIssuerTypeDefs = gql`
     type Query {
         bookIssuers: [BookIssuer]
-        BookIssuer(_id: ID!): BookIssuer
+        BookIssuer: [BookIssuer]
     }
 
     type BookIssuer {
         _id: ID!
-        bookid: ID!
-        studentid: ID!
+        bookid: Book!
+        studentid: User!
         returnDays: Int
-        issuedDate: Date
-        bookToBeReturned: Date
-        returnDate: Date
+        issuedDate: String
+        bookToBeReturned: String
+        returnDate: String
         isReturned: Boolean
         panalty: Int
     }
 
     type Mutation {
         issueBook(input: issueBookInput!): BookIssuer
-        returnBook(input: returnBookInput!): BookIssuer
+        returnBook(input: returnBookInput!): String
     }
 
     input issueBookInput{
         bookid: ID!
         studentid: ID!
         returnDays: Int!
-        bookToBeReturned: Date!
+        bookToBeReturned: String!
     }
 
     input returnBookInput{
         _id: ID!
-        returnDate: Date!
+        returnDate: String!
         panalty: Int!
     }
 `;

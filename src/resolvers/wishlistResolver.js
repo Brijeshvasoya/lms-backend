@@ -56,7 +56,7 @@ export const wishlistResolver = {
           throw new Error('Wishlist item not found');
         }
 
-        return wishlist;
+        return "Book removed from Wishlist Successfully";
       } catch (error) {
         throw new Error(error.message || 'Error removing from wishlist');
       }

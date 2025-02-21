@@ -13,7 +13,7 @@ const wishlistTypeDefs = gql`
 
     type Mutation {
         addToWishlist(input: wishlistInput!): Wishlist
-        removeFromWishlist(_id: ID!): Wishlist
+        removeFromWishlist(_id: ID!): String
     }
 
     input wishlistInput {

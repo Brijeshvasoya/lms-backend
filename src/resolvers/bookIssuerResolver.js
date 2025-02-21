@@ -16,42 +16,46 @@ export const bookIssuerResolver = {
         throw new Error(error.message || 'Error fetching book issuers');
       }
     },
-    BookIssuer: async (_, { _id }, { models, me }) => {
+    BookIssuer: async (_, __, { models, me }) => {
       try {
         if (!me) {
           throw new Error('Authentication required');
         }
-        const bookIssuer = await models.BookIssuer.findById(_id)
-          .populate('bookid', '_id')  
-          .populate('studentid', '_id');  
+        const bookIssues = await models.BookIssuer.find({ studentid: me._id, isReturned: false })
+          .populate('bookid')
+          .populate('studentid')
+          .sort({ issuedDate: -1 });
 
-        if (!bookIssuer) {
-          throw new Error('Book issuer record not found');
+        if (!bookIssues || bookIssues.length === 0) {
+          throw new Error('No book issuer records found');
         }
-
-        if (me.role !== 'admin' && bookIssuer.studentid.toString() !== me._id.toString()) {
-          throw new Error('Unauthorized: Access denied');
+        if (me.role !== 'admin') {
+          const isOwnRecords = bookIssues.every(issue => 
+            issue.studentid._id.toString() === me._id.toString()
+          );
+          if (!isOwnRecords) {
+            throw new Error('Unauthorized: Access denied');
+          }
         }
-
-        return bookIssuer;
+        return bookIssues;
       } catch (error) {
-        throw new Error(error.message || 'Error fetching book issuer');
+        throw new Error(error.message || 'Error fetching book issuers');
       }
     },
   },
   Mutation: {
     issueBook: async (_, { input }, { models }) => {
       try {
-        const bookToBeReturned = input.bookToBeReturned 
-          ? new Date(Date.parse(input.bookToBeReturned)) 
-          : null;
-
+        const existingBookIssuerForSameBook = await models.BookIssuer.findOne({ studentid: input.studentid, bookid: input.bookid, isReturned: false });
+        if (existingBookIssuerForSameBook) {
+          throw new Error('User cannot issue this book again until the previous one is returned.');
+        }
         const newBookIssuer = new models.BookIssuer({
           bookid: input.bookid,
           studentid: input.studentid,
           returnDays: input.returnDays,
           issuedDate: new Date(),
-          bookToBeReturned: bookToBeReturned,
+          bookToBeReturned: input.bookToBeReturned,
           isReturned: false,
         });
         const result = await newBookIssuer.save();
@@ -69,13 +73,12 @@ export const bookIssuerResolver = {
             isReturned: true
           },
           { new: true }
-        ).populate('bookid', '_id')
-         .populate('studentid', '_id');
+        )
 
         if (!bookIssuer) {
           throw new Error('Book issuer record not found');
         }
-        return bookIssuer;
+        return "Book returned successfully";
       } catch (error) {
         throw new Error(error.message || 'Error returning book');
       }

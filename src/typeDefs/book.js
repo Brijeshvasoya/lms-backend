@@ -2,7 +2,7 @@ import gql from "graphql-tag";
 
 const bookTypeDefs = gql`
     type Query {
-        books(searchTerm: String): [Book]
+        books: [Book]
         book(_id: ID!): Book
     }
 
@@ -13,7 +13,6 @@ const bookTypeDefs = gql`
         publisher: String
         publishDate: Date
         coverImage: String
-        user: User
     }
 
     type User {
