@@ -26,9 +26,9 @@ export const bookIssuerResolver = {
           .populate('studentid')
           .sort({ issuedDate: -1 });
 
-        if (!bookIssues || bookIssues.length === 0) {
-          throw new Error('No book issuer records found');
-        }
+        // if (!bookIssues || bookIssues.length === 0) {
+        //   throw new Error('No book issuer records found');
+        // }
         if (me.role !== 'admin') {
           const isOwnRecords = bookIssues.every(issue => 
             issue.studentid._id.toString() === me._id.toString()
@@ -42,6 +42,23 @@ export const bookIssuerResolver = {
         throw new Error(error.message || 'Error fetching book issuers');
       }
     },
+    studentBookIssuers: async (_, { studentid }, { models, me }) => {
+      try {
+        if (!me) {
+          throw new Error('Authentication required');
+        }
+        if (me.role !== 'admin') {
+          throw new Error('Unauthorized: Admin access required');
+        }
+        const bookIssues = await models.BookIssuer.find({ studentid: studentid })
+          .populate('bookid')
+          .populate('studentid')
+          .sort({ issuedDate: -1 });
+        return bookIssues;
+      } catch (error) {
+        throw new Error(error.message || 'Error fetching book issuers');
+      }
+    }
   },
   Mutation: {
     issueBook: async (_, { input }, { models }) => {
@@ -69,8 +86,9 @@ export const bookIssuerResolver = {
         const bookIssuer = await models.BookIssuer.findByIdAndUpdate(
           input._id,
           { 
-            returnDate: input.returnDate ? new Date(input.returnDate) : null,
-            isReturned: true
+            returnDate: input.returnDate ,
+            isReturned: true,
+            panalty: input.panalty
           },
           { new: true }
         )

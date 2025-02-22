@@ -4,12 +4,13 @@ const bookIssuerTypeDefs = gql`
     type Query {
         bookIssuers: [BookIssuer]
         BookIssuer: [BookIssuer]
+        studentBookIssuers(studentid: ID!): [BookIssuer]
     }
 
     type BookIssuer {
-        _id: ID!
-        bookid: Book!
-        studentid: User!
+        _id: ID
+        bookid: Book
+        studentid: User
         returnDays: Int
         issuedDate: String
         bookToBeReturned: String

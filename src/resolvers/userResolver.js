@@ -5,11 +5,11 @@ export const userResolver = {
   Query: {
     users: async (_, { searchTerm }, { models, me }) => {
       try {
-        let query = { isDeleted: false };
+        let query = { isDeleted: false, role: { $ne: "admin" } };
         if (searchTerm) {
           query.$or = [
-            { fname: { $regex: searchTerm, $options: 'i' } },
-            { lname: { $regex: searchTerm, $options: 'i' } }
+            { fname: { $regex: searchTerm, $options: "i" } },
+            { lname: { $regex: searchTerm, $options: "i" } }
           ];
         }
         
