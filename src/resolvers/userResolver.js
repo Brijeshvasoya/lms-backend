@@ -1,27 +1,94 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 export const userResolver = {
   Query: {
     users: async (_, { searchTerm }, { models, me }) => {
+      if(!me) {
+        throw new Error("Authentication required");
+      }
+      if(me.role !== "admin") {
+        throw new Error("Unauthorized: Admin access required");
+      }
       try {
         let query = { isDeleted: false, role: { $ne: "admin" } };
         if (searchTerm) {
           query.$or = [
             { fname: { $regex: searchTerm, $options: "i" } },
-            { lname: { $regex: searchTerm, $options: "i" } }
+            { lname: { $regex: searchTerm, $options: "i" } },
           ];
         }
-        
+
         const users = await models.User.find(query);
-        return users;
+        const userIds = users.map((user) => user._id);
+        const penalties = await models.BookIssuer.aggregate([
+          { $match: { studentid: { $in: userIds } } },
+          { $group: { _id: "$studentid", totalPenalty: { $sum: "$panalty" } } },
+        ]);
+        const penaltyMap = penalties.reduce((acc, { _id, totalPenalty }) => {
+          acc[_id] = totalPenalty;
+          return acc;
+        }, {});
+        return users.map((user) => ({
+          ...user.toObject(),
+          totalPenalty: penaltyMap[user._id] || 0,
+        }));
       } catch (error) {
-        throw new Error(error.message || 'Error fetching users');
+        throw new Error(error.message || "Error fetching users");
       }
     },
-    GetUser: async (_, { _id }, { models, me }) => {
+    userHistory: async (_, __, { models, me }) => {
+      const userHistory = await models.BookIssuer.aggregate([
+        { $match: { studentid: new mongoose.Types.ObjectId(me._id) } },
+        {
+          $lookup: {
+            from: "books",
+            localField: "bookid",
+            foreignField: "_id",
+            as: "bookDetails",
+          },
+        },
+        {
+          $unwind: {
+            path: "$bookDetails",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $group: {
+            _id: "$studentid",
+            totalIssuedBooks: { $sum: 1 },
+            totalPenalty: { $sum: "$penalty" },
+            totalPendingBooks: {
+              $sum: { $cond: [{ $eq: ["$isReturned", false] }, 1, 0] },
+            },
+            totalReturnedBooks: {
+              $sum: { $cond: [{ $eq: ["$isReturned", true] }, 1, 0] },
+            },
+            totalLateReturnedBooks: {
+              $sum: { $cond: [{ $eq: ["$isLateReturn", true] }, 1, 0] },
+            },
+            issuedBooksDetails: {
+              $push: {
+                bookid: "$bookid",
+                title: { $ifNull: ["$bookDetails.title", "Unknown Title"] },
+                returnDays: "$returnDays",
+                issuedDate: { $ifNull: ["$issuedDate", null] },
+                bookToBeReturned: { $ifNull: ["$bookToBeReturned", null] },
+                returnDate: { $ifNull: ["$returnDate", null] },
+                isReturned: "$isReturned",
+                penalty: { $ifNull: ["$penalty", 0] },
+              },
+            },
+          },
+        },
+      ]);
+      return userHistory;
+    },
+    GetUser: async (_, __, { models, me }) => {
       try {
-        const user = await models.User.findById(_id);
+        const user = await models.User.findById(me._id);
         return user;
       } catch (error) {
         throw new Error("Error fetching user");
@@ -158,7 +225,7 @@ export const userResolver = {
     },
     deactiveUser: async (_, { id }, { me, models }) => {
       try {
-        if ( me?.role !== "admin") {
+        if (me?.role !== "admin") {
           throw new Error("Unauthorized for deactivating this user");
         }
         const user = await models.User.findByIdAndUpdate(
@@ -173,6 +240,6 @@ export const userResolver = {
       } catch (error) {
         throw new Error(error.message || "Error deactivating user");
       }
-    }
+    },
   },
 };

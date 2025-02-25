@@ -39,7 +39,7 @@ const graphqlRoute = async () => {
             const me = await models.User.findById(decoded.userId);
             return { me, models };
           } catch (error) {
-            throw new Error(error.message);
+            return { error: "JWT verification failed" };
           }
         }
         return { models };

@@ -1,6 +1,9 @@
 export const bookResolver = {
   Query: {
-    books: async (_, args, { models }) => {
+    books: async (_, args, { models,me }) => {
+      if(!me){
+        throw new Error("Authentication required");
+      }
       try {
         const books = await models.Book.find();
         return books;

@@ -3,7 +3,29 @@ import gql from "graphql-tag";
 const userTypeDefs = gql`
   type Query {
     users(searchTerm: String): [User]
-    GetUser(_id: ID!): User
+    GetUser: User
+    userHistory: [UserHistory]
+  }
+
+  type UserHistory {
+    _id: ID!
+    totalIssuedBooks: Int
+    totalPenalty: Int
+    totalPendingBooks: Int
+    totalReturnedBooks: Int
+    totalLateReturnedBooks: Int
+    issuedBooksDetails: [bookDetails]
+  }
+
+  type bookDetails {
+    bookid: ID!
+    title: String
+    returnDays: Int
+    issuedDate: String
+    bookToBeReturned: String
+    returnDate: String
+    isReturned: Boolean
+    penalty: Int
   }
 
   type User {
@@ -11,13 +33,14 @@ const userTypeDefs = gql`
     fname: String
     lname: String
     email: String
-    password: String
     age: Int
     dob: String
     role: String
     isVerified: Boolean
     isDeleted: Boolean
     profilePicture: String
+    totalPenalty: Int
+    isBlocked: Boolean
   }
 
   type Token {

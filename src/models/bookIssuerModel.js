@@ -31,9 +31,13 @@ const bookIssuerSchema = new mongoose.Schema({
         type:Boolean,
         default:false
     },
-    panalty:{
+    penalty:{
         type:Number,
         default:0
+    },
+    isLateReturn:{
+        type:Boolean,
+        default:false
     }
 }, { timestamps: true });
 

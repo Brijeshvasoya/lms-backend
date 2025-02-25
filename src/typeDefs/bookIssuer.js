@@ -16,7 +16,7 @@ const bookIssuerTypeDefs = gql`
         bookToBeReturned: String
         returnDate: String
         isReturned: Boolean
-        panalty: Int
+        penalty: Int
     }
 
     type Mutation {
@@ -34,7 +34,7 @@ const bookIssuerTypeDefs = gql`
     input returnBookInput{
         _id: ID!
         returnDate: String!
-        panalty: Int!
+        penalty: Int!
     }
 `;
 
