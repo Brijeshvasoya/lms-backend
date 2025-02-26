@@ -24,7 +24,7 @@ export const userResolver = {
         const userIds = users.map((user) => user._id);
         const penalties = await models.BookIssuer.aggregate([
           { $match: { studentid: { $in: userIds } } },
-          { $group: { _id: "$studentid", totalPenalty: { $sum: "$panalty" } } },
+          { $group: { _id: "$studentid", totalPenalty: { $sum: "$penalty" } } },
         ]);
         const penaltyMap = penalties.reduce((acc, { _id, totalPenalty }) => {
           acc[_id] = totalPenalty;
