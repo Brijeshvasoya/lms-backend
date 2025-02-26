@@ -5,10 +5,10 @@ import mongoose from "mongoose";
 export const userResolver = {
   Query: {
     users: async (_, { searchTerm }, { models, me }) => {
-      if(!me) {
+      if (!me) {
         throw new Error("Authentication required");
       }
-      if(me.role !== "admin") {
+      if (me.role !== "admin") {
         throw new Error("Unauthorized: Admin access required");
       }
       try {
@@ -21,19 +21,52 @@ export const userResolver = {
         }
 
         const users = await models.User.find(query);
-        const userIds = users.map((user) => user._id);
-        const penalties = await models.BookIssuer.aggregate([
-          { $match: { studentid: { $in: userIds } } },
-          { $group: { _id: "$studentid", totalPenalty: { $sum: "$penalty" } } },
+        const userIds = users.map((user) => new mongoose.Types.ObjectId(user._id));
+        
+        const detail = await models.BookIssuer.aggregate([
+          {
+            $match: {
+              studentid: {
+                $in: userIds
+              },
+            },
+          },
+          {
+            $lookup: {
+              from: "books",
+              localField: "bookid",
+              foreignField: "_id",
+              as: "bookDetails",
+            },
+          },
+          {
+            $unwind: {
+              path: "$bookDetails",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $group: {
+              _id: "$studentid",
+              totalPenalty: { $sum: "$penalty" },
+              totalLateReturnedBooks: {
+                $sum: { $cond: [{ $eq: ["$isLateReturn", true] }, 1, 0] },
+              },
+            },
+          },
         ]);
-        const penaltyMap = penalties.reduce((acc, { _id, totalPenalty }) => {
-          acc[_id] = totalPenalty;
-          return acc;
-        }, {});
-        return users.map((user) => ({
-          ...user.toObject(),
-          totalPenalty: penaltyMap[user._id] || 0,
-        }));
+        const response = users.map((user) => {
+          return {
+            ...user.toObject(),
+            totalPenalty:
+              detail.find((d) => d._id.toString() === user._id.toString())
+                ?.totalPenalty || 0,
+            totalLateReturnedBooks:
+              detail.find((d) => d._id.toString() === user._id.toString())
+                ?.totalLateReturnedBooks || 0,
+          };
+        });
+        return response;
       } catch (error) {
         throw new Error(error.message || "Error fetching users");
       }

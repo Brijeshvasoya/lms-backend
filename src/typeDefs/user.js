@@ -40,6 +40,7 @@ const userTypeDefs = gql`
     isDeleted: Boolean
     profilePicture: String
     totalPenalty: Int
+    totalLateReturnedBooks: Int
     isBlocked: Boolean
   }
 
